@@ -1,5 +1,5 @@
 {
-  "name": "geodbscan",
+  "name": "@dentreality/geodbscan",
   "version": "0.0.1",
   "description": "A geospatial implementation of the DBSCAN clustering algorithm",
   "keywords": [
@@ -41,5 +41,13 @@
         "useESM": true
       }
     }
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/DentReality/GeoDBSCAN.git"
+  },
+  "bugs": {
+    "url": "https://github.com/DentReality/GeoDBSCAN/issues"
+  },
+  "homepage": "https://github.com/DentReality/GeoDBSCAN#readme"
 }
