@@ -1,5 +1,5 @@
 export default class GeoDBSCAN {
-  private _dataset: [number, number][];
+  private _coordinates: [number, number][];
   private _epsilon: number;
   private _minPts: number;
   private _clusters: number[][];
@@ -9,7 +9,7 @@ export default class GeoDBSCAN {
   private _datasetLength = 0;
 
   constructor() {
-    this._dataset = [];
+    this._coordinates = [];
     this._epsilon = 1;
     this._minPts = 2;
     this._clusters = [];
@@ -20,24 +20,24 @@ export default class GeoDBSCAN {
   }
 
   public cluster(
-    dataset: [number, number][],
+    coordinates: [number, number][],
     options: {
       minPts: number;
       epsilon?: number;
     }
   ) {
-    if (dataset) {
-      if (!(dataset instanceof Array)) {
+    if (coordinates) {
+      if (!(coordinates instanceof Array)) {
         throw Error(
-          "Dataset must be of type array, " + typeof dataset + " given"
+          "Dataset must be of type array, " + typeof coordinates + " given"
         );
       }
 
-      this._dataset = dataset;
+      this._coordinates = coordinates;
       this._clusters = [];
       this._noise = [];
 
-      this._datasetLength = dataset.length;
+      this._datasetLength = coordinates.length;
       this._visited = new Array(this._datasetLength);
       this._assigned = new Array(this._datasetLength);
     }
@@ -55,7 +55,7 @@ export default class GeoDBSCAN {
     if (options.epsilon) {
       this._epsilon = options.epsilon;
     } else {
-      this._epsilon = this._getkNNDistPlotKnee(dataset, this._minPts);
+      this._epsilon = this._getkNNDistPlotKnee(coordinates, this._minPts);
     }
 
     for (let pointId = 0; pointId < this._datasetLength; pointId++) {
@@ -109,11 +109,6 @@ export default class GeoDBSCAN {
   private _getkNNDistPlotKnee(dataset: [number, number][], k: number) {
     const kDistances = this._kNNDistPlot(dataset, k);
 
-    let biggestDiff = -Infinity;
-    let biggestDiffIndex;
-
-    console.log(kDistances);
-
     if (dataset.length < 3) {
       throw new Error("Requires at least 3 data points to determine epsilon");
     }
@@ -122,45 +117,44 @@ export default class GeoDBSCAN {
       return kDistances[1];
     }
 
-    let total = 0;
+    // This is a best effort attempt to locate
+    // the 'knee' in the kNN distance plot.
+    // The approach is to sort the top changes across
+    // the plot, take the top 50% then iterate through the
+    // list again and wait until half of those have been found
+    // TODO: Does someone know a better solution?
+
+    const deltas = [];
     for (let i = 0; i < kDistances.length - 1; i++) {
       const distance = kDistances[i];
       const nextDistance = kDistances[i + 1];
-      const diff = distance - nextDistance;
-      total += diff;
-    }
+      const delta = distance - nextDistance;
 
-    const meanDelta = total / kDistances.length - 1;
-
-    const aboveMeanDelta = [];
-
-    for (let i = 0; i < kDistances.length - 1; i++) {
-      const distance = kDistances[i];
-      const nextDistance = kDistances[i + 1];
-      const diff = distance - nextDistance;
-
-      if (diff > meanDelta) {
-        aboveMeanDelta.push(true);
-      } else {
-        aboveMeanDelta.push(false);
-      }
+      deltas.push({ i, delta });
     }
 
     let knee = Math.round(kDistances.length / 2);
 
-    let confidence = aboveMeanDelta.length;
-    for (let i = 0; i < aboveMeanDelta.length - 1; i++) {
-      if (!aboveMeanDelta[i]) {
-        confidence--;
-      }
+    const topFiftyPercentDeltas = deltas
+      .sort((a, b) => b.delta - a.delta)
+      .slice(0, Math.round(deltas.length / 2))
+      .map(({ i }) => i);
+    let above = 0;
 
-      if (confidence / aboveMeanDelta.length < 3 / 4) {
-        knee = i;
-        break;
+    for (let i = 0; i < kDistances.length - 1; i++) {
+      const distance = kDistances[i];
+      const nextDistance = kDistances[i + 1];
+      const delta = distance - nextDistance;
+
+      if (topFiftyPercentDeltas.includes(i)) {
+        above++;
+        if (above > topFiftyPercentDeltas.length / 2) {
+          knee = i;
+          break;
+        }
       }
     }
 
-    console.log(JSON.stringify(knee));
     return kDistances[knee];
   }
 
@@ -209,8 +203,8 @@ export default class GeoDBSCAN {
 
     for (let id = 0; id < this._datasetLength; id++) {
       const dist = this._haversineDistanceMeters(
-        this._dataset[pointId],
-        this._dataset[id]
+        this._coordinates[pointId],
+        this._coordinates[id]
       );
       if (dist < this._epsilon) {
         neighbors.push(id);
