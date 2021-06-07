@@ -1,0 +1,33 @@
+{
+  "name": "geodbscan",
+  "version": "0.0.1",
+  "description": "A geospatial implementation of the DBSCAN clustering algorithm",
+  "keywords": [
+    "cluster",
+    "clustering",
+    "DBSCAN",
+    "geo",
+    "geojson"
+  ],
+  "author": "Dent Reality",
+  "license": "MIT",
+  "scripts": {
+    "test": "jest",
+    "build": "microbundle",
+    "dev": "microbundle watch"
+  },
+  "type": "module",
+  "source": "src/geodbscan.ts",
+  "exports": "./dist/geodbscan.modern.js",
+  "main": "./dist/geodbscan.cjs",
+  "module": "./dist/geodbscan.module.js",
+  "unpkg": "./dist/geodbscan.umd.js",
+  "dependencies": {},
+  "devDependencies": {
+    "@types/jest": "^26.0.23",
+    "jest": "^27.0.4",
+    "microbundle": "^0.13.1",
+    "ts-jest": "^27.0.2",
+    "typescript": "^4.3.2"
+  }
+}
